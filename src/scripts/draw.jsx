@@ -4,7 +4,8 @@
 "use strict";
 
 var React = require("react"),
-    _     = require("lodash");
+    _     = require("lodash"),
+    Redraw = require("./refreshChart.jsx");
 
 module.exports = React.createClass({
   displayName: "Draw",
@@ -14,7 +15,7 @@ module.exports = React.createClass({
       clusters: {},
       width: 200,
       height: 200,
-      clusterRadius: 25
+      clusterRadius: 50
     };
   },
 
@@ -25,9 +26,13 @@ module.exports = React.createClass({
   },
 
   render: function() {
-    console.log(this.props.clusters);
-    this.renderCentroids();
-    return null;
+    if (this.renderCentroids() !== true) {
+      return <div>
+        <h2>Loading data...</h2>
+      </div>;
+    } else {
+      return <Redraw redraw={this.renderCentroids} />;
+    }
   },
 
   componentDidMount: function() {
@@ -41,12 +46,15 @@ module.exports = React.createClass({
   },
   
   shouldComponentUpdate: function(nextProps, nextState) {
-    if (this.props.clusters[0] &&
-        this.props.clusters[0].length ===
-        nextProps.clusters[0].length)
-      return false;
+    if (this.props.clusters[0]) {
+      return _.any(this.props.clusters, function(v, k) {
+        return v.length !== nextProps.clusters[k].length;
+      });
+    } else {
+      return true;
+    }
 
-    return true;
+    return false;
   },
 
   generateCentroids: function() {
@@ -108,8 +116,8 @@ module.exports = React.createClass({
   renderCentroids: function() {
     var svgContainer = this.state.svg;
 
-    if (!this.state.svg || !Object.keys(this.props.clusters).length) {
-      return;
+    if (!svgContainer || !Object.keys(this.props.clusters).length) {
+      return null;
     }
 
     // clear the canvas
@@ -142,29 +150,31 @@ module.exports = React.createClass({
 
     circles
     .on("mouseover", function(d) {
-      if (!d.tweet) return;
+      if (!d.tweet) {
+        tooltip
+          .style("left", d.x_axis - 150 + "px")
+          .style("top", d.y_axis + 20 + "px")
+          .style("display", "block")
+          .html("Centroid");
+      } else {
+        tooltip
+          .style("left", d.x_axis - 150 + "px")
+          .style("top", d.y_axis + 20 + "px")
+          .style("display", "block")
+          .html(d.tweet[1][1]);
 
-      d3.select(this)
-        .transition()
-        .duration(300)
-        .style("stroke", "red")
-        .attr("r", function(d) { return d.radius * 2; })
-        .style("stroke-width", 2);
-
-      tooltip
-        .style("left", d.x_axis + 10 + "px")
-        .style("top", d.y_axis + 10 + "px")
-        .style("opacity", 1)
-        .html(d.tweet[1][1]);
+        d3.select(this)
+          .style("stroke", "red")
+          .attr("r", function(d) { return d.radius * 2; })
+          .style("stroke-width", 2);
+      }
     })
     .on("mouseout", function() {
       d3.select(this)
-        .transition()
-        .duration(300)
         .attr("r", function(d) { return d.radius; })
         .style("stroke-width", 0);
 
-      tooltip.style("opacity", 0);
+      tooltip.style("display", "none");
     });
 
     var circleAttributes = circles
@@ -172,5 +182,7 @@ module.exports = React.createClass({
       .attr("cy", function (d) { return d.y_axis; })
       .attr("r", function (d) { return d.radius; })
       .style("fill", function(d) { return d.color; });
+
+    return true;
   }
 });

@@ -26,15 +26,15 @@ module.exports = React.createClass({
     });
 
     return <div>
+      <Draw clusters={clusters} width={800} height={400} />
       {Object.keys(clusters).map(function(id) {
         return <Tweet tweets={clusters[id]} clusterId={id} />;
       })}
-      <Draw clusters={clusters} width={800} height={400} />
     </div>;
   },
 
   _fetchData: function() {
-    $.get("http://localhost:8080")
+    $.get("http://5.101.96.19:8001")
       .success(this._updateClusters)
       .fail(this._updateClusters);
   },
