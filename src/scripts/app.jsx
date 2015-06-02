@@ -1,4 +1,5 @@
 /* jshint globalstrict: true, node: true */
+/* global document */
 "use strict";
 
 var React = require("react");
@@ -21,16 +22,48 @@ module.exports = React.createClass({
   },
 
   render: function() {
-    var clusters = _.groupBy(this.state.tweets, function(t) {
-      return t[0];
-    });
+    var dimensions = this.getDimensions();
 
     return <div>
-      <Draw clusters={clusters} width={800} height={400} />
-      {Object.keys(clusters).map(function(id) {
-        return <Tweet tweets={clusters[id]} clusterId={id} />;
-      })}
+      <Draw clusters={this.state.tweets} width={dimensions.width}
+            height={dimensions.height}
+            onCentroidHover={this.onCentroidHover} />
     </div>;
+  },
+
+  onCentroidHover: function(index) {
+    var topics = this.getTopics(this.state.tweets[index]);
+
+    console.log(topics); 
+  },
+
+  getTopics: function(cluster) {
+    if (cluster) {
+      var tweets = cluster.map(function(entry) {
+        if (entry[1])
+          return entry[1][1].split(" ").map(function(w) {
+            return w.toLowerCase();
+          });
+      });
+
+      return _.intersection.apply(null, tweets);
+    }
+  },
+
+  getDimensions: function() {
+    var body = document.body,
+    html = document.documentElement;
+
+    var height = Math.max(body.scrollHeight, body.offsetHeight, 
+                          html.clientHeight, html.scrollHeight,
+                          html.offsetHeight);
+
+    var width = document.body.offsetWidth;
+
+    return {
+      width: width,
+      height: height
+    };
   },
 
   _fetchData: function() {
@@ -41,8 +74,12 @@ module.exports = React.createClass({
 
   _updateClusters: function(data, status) {
     if (status !== "error") {
+      var clusters = _.groupBy(data, function(t) {
+        return t[0];
+      });
+
       this.setState({
-        tweets: data
+        tweets: clusters
       });
     }
     setTimeout(this._fetchData, 2000);

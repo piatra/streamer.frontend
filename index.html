@@ -4,33 +4,19 @@
     <title>Basic Property Grid</title>
     <!-- include react -->
     <script src="./node_modules/react/dist/react-with-addons.js"></script>
-    <script type="text/javascript" src="http://mbostock.github.com/d3/d3.js"></script>
-    <style>
-      .tooltip {   
-        position: absolute;           
-        text-align: center;           
-        width: 300px;
-        height: auto;
-        padding: 5px;             
-        margin: 5px;
-        font: 12px sans-serif;        
-        background: lightsteelblue;   
-        border: 0px;      
-        border-radius: 8px;           
-        pointer-events: none;         
-        display: none;
-      }
-    </style>
+    <link rel="stylesheet" href="./src/style/main.css" />
   </head>
   <body>
-    <div id="canvas" style="width:800;height:400px">
-      <svg width="800" height="400"></svg>
+    <div id="canvas">
+      <svg></svg>
     </div>
     <div id="content">
       <!-- this is where the root react component will get rendered -->
     </div>
     <!-- include the webpack-dev-server script so our scripts get reloaded when we make a change -->
     <!-- we'll run the webpack dev server on port 8090, so make sure it is correct -->
+
+    <script src='http://d3js.org/d3.v2.js'></script>
     <script src="http://localhost:8090/webpack-dev-server.js"></script>
     <!-- include the bundle that contains all our scripts, produced by webpack -->
     <!-- the bundle is served by the webpack-dev-server, so serve it also from localhost:8090 -->

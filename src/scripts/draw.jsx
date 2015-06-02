@@ -27,15 +27,20 @@ module.exports = React.createClass({
 
   render: function() {
     if (this.renderCentroids() !== true) {
-      return <div>
+      return <div className="loading">
         <h2>Loading data...</h2>
       </div>;
     } else {
-      return <Redraw redraw={this.renderCentroids} />;
+      return <div>
+        <p>Total: {this.noOfTweets()} tweets</p>
+        <Redraw redraw={this.renderCentroids} />
+      </div>;
     }
   },
 
   componentDidMount: function() {
+    this.points = [];
+
     var svgContainer = d3.select("#canvas svg")
       .attr("width", this.props.width)
       .attr("height", this.props.height);
@@ -57,60 +62,75 @@ module.exports = React.createClass({
     return false;
   },
 
+  noOfTweets: function() {
+    return _.map(this.props.clusters, function(cluster) {
+      return cluster.length;
+    }).reduce(function(acc, l) { return acc + l; }, 0);
+  },
+
   generateCentroids: function() {
     var noCentroids = Object.keys(this.props.clusters).length;
     var points = [];
+    var p;
     for (var i = 0; i < noCentroids; ++i) {
-      var coords = this.generateRandomPoint(
-        this.getRandomArbitrary(0, this.props.width),
-        this.getRandomArbitrary(0, this.props.height)
-      );
-      points.push(this.generateCentroid(coords.x, coords.y));
+      p = this.getCentroidPosition(this.props.width, i);
+
+      points.push(this.generateCentroid(p.x, p.y, i));
     }
 
     return points;
   },
 
   generateClusterPoints: function(centroid, cid) {
-    var points = [];
-    this.props.clusters[cid].map(function(cluster, idx) {
-      var coords = this.generateRandomPoint(centroid.x_axis, centroid.y_axis);
-      var p = this.generatePoint(coords.x, coords.y);
-      p.tweet = this.props.clusters[cid][idx];
-      points.push(p);
-    }.bind(this));
+    if (!this.props.clusters[cid])
+      return;
 
-    return points;
+    return this.props.clusters[cid].reduce(function(acc, cluster, idx) {
+      if (cluster.length != 2)
+        return;
+
+      var coords = this.generateRandomPoint(centroid.x_axis, centroid.y_axis);
+      var p = this.getPointProperties(coords.x, coords.y);
+      p.tweet = this.props.clusters[cid][idx];
+      acc.push(p);
+      return acc;
+    }.bind(this), []);
   },
 
-  getRandomArbitrary: function(min, max) {
-    min += this.props.clusterRadius;
-    max -= this.props.clusterRadius;
-    return Math.random() * (max - min) + min;
+  getCentroidPosition: function(width, i) {
+    var diameter = this.props.clusterRadius * 4;
+    var columns = Math.floor(width / diameter);
+
+    var centroidRow = Math.floor(i / columns);
+    var centroidCol = Math.floor(i % columns);
+
+    var y0 = centroidRow * diameter;
+    var x0 = centroidCol * diameter;
+
+    return {
+      x: x0 + diameter / 2,
+      y: y0 + diameter / 2
+    };
   },
 
   generateRandomPoint: function(x0, y0) {
-    var rd = this.props.clusterRadius;
+    var rd = this.props.clusterRadius +
+             Math.random() * this.props.clusterRadius / 2;
 
-    var u = Math.random();
-    var v = Math.random();
+    var angle = Math.random() * Math.PI * 2;
 
-    var w = rd * Math.sqrt(u);
-    var t = 2 * Math.PI * v;
-    var x = w * Math.cos(t);
-    var y = w * Math.sin(t);
+    var y = Math.sin(angle) * rd;
+    var x = Math.cos(angle) * rd;
 
-    var xp = x/Math.cos(y0);
-
-    return {"y": y + y0, "x": xp + x0};
+    return {y: y + y0, x: x + x0};
   },
 
-  generateCentroid: function(x, y) {
-    return { "x_axis": x, "y_axis": y, "radius": 10, "color" : "red" };
+  generateCentroid: function(x, y, idx) {
+    return { x_axis: x, y_axis: y, radius: 10, color : "red", index: idx };
   },
 
-  generatePoint: function(x, y) {
-    return { "x_axis": x, "y_axis": y, "radius": 3, "color" : "blue" };
+  getPointProperties: function(x, y) {
+    return { x_axis: x, y_axis: y, radius: 3, color : "blue" };
   },
 
   renderCentroids: function() {
@@ -128,20 +148,19 @@ module.exports = React.createClass({
 
     var tooltip = this.state.svg.append("foreignObject")
       .append("xhtml:div")
-      .attr("class", "tooltip")
-      .html("a simple tooltip");
+      .attr("class", "tooltip");
 
     jsonPoints.forEach(function(cluster, idx) {
-      cluster.forEach(function(point) {
-        svgContainer.append("line")
-          .style("stroke", "black")
-          .attr("x1", point.x_axis)
-          .attr("y1", point.y_axis)
-          .attr("x2", jsonCircles[idx].x_axis)
-          .attr("y2", jsonCircles[idx].y_axis);
-      });
+      if (cluster)
+        cluster.forEach(function(point) {
+          svgContainer.append("line")
+            .style("stroke", "black")
+            .attr("x1", point.x_axis)
+            .attr("y1", point.y_axis)
+            .attr("x2", jsonCircles[idx].x_axis)
+            .attr("y2", jsonCircles[idx].y_axis);
+        });
     });
-
 
     var circles = this.state.svg.selectAll("circle")
       .data(jsonCircles.concat(_.flatten(jsonPoints)))
@@ -151,37 +170,24 @@ module.exports = React.createClass({
     circles
     .on("mouseover", function(d) {
       if (!d.tweet) {
-        tooltip
-          .style("left", d.x_axis - 150 + "px")
-          .style("top", d.y_axis + 20 + "px")
-          .style("display", "block")
-          .html("Centroid");
+        this.props.onCentroidHover(d.index);
       } else {
         tooltip
           .style("left", d.x_axis - 150 + "px")
           .style("top", d.y_axis + 20 + "px")
           .style("display", "block")
           .html(d.tweet[1][1]);
-
-        d3.select(this)
-          .style("stroke", "red")
-          .attr("r", function(d) { return d.radius * 2; })
-          .style("stroke-width", 2);
       }
-    })
+    }.bind(this))
     .on("mouseout", function() {
-      d3.select(this)
-        .attr("r", function(d) { return d.radius; })
-        .style("stroke-width", 0);
-
       tooltip.style("display", "none");
     });
 
     var circleAttributes = circles
-      .attr("cx", function (d) { return d.x_axis; })
-      .attr("cy", function (d) { return d.y_axis; })
-      .attr("r", function (d) { return d.radius; })
-      .style("fill", function(d) { return d.color; });
+      .attr("cx", function (d) { if (d) return d.x_axis; })
+      .attr("cy", function (d) { if (d) return d.y_axis; })
+      .attr("r", function (d) { if (d) return d.radius; })
+      .style("fill", function(d) { if (d) return d.color; });
 
     return true;
   }
