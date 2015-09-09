@@ -6,14 +6,17 @@ var React = require("react");
 var $     = require("jquery");
 var Tweet = require("./tweet.jsx"),
     _     = require("lodash"),
-    Draw  = require("./draw.jsx");
+    Draw  = require("./draw.jsx"),
+    Sidebar = require("./sidebar.jsx");
 
 module.exports = React.createClass({
   displayName: "Main",
 
   getInitialState: function() {
     return {
-      tweets: []
+      tweets: [],
+      sidebar: false,
+      activeCluster: null
     };
   },
 
@@ -25,29 +28,34 @@ module.exports = React.createClass({
     var dimensions = this.getDimensions();
 
     return <div>
+      {this.renderSidebar()}
       <Draw clusters={this.state.tweets} width={dimensions.width}
             height={dimensions.height}
-            onCentroidHover={this.onCentroidHover} />
+            onCentroidClick={this.loadSidebar} />
     </div>;
   },
 
-  onCentroidHover: function(index) {
-    var topics = this.getTopics(this.state.tweets[index]);
-
-    console.log(topics); 
+  loadSidebar: function(id) {
+    this.setState({
+      sidebar: true,
+      activeCluster: this.state.tweets[id] || null
+    });
   },
 
-  getTopics: function(cluster) {
-    if (cluster) {
-      var tweets = cluster.map(function(entry) {
-        if (entry[1])
-          return entry[1][1].split(" ").map(function(w) {
-            return w.toLowerCase();
-          });
-      });
-
-      return _.intersection.apply(null, tweets);
+  renderSidebar: function() {
+    if (this.state.sidebar && this.state.activeCluster) {
+      return <Sidebar cluster={this.state.activeCluster}
+                      onClose={this.hideSidebar} />;
     }
+
+    return null;
+  },
+
+  hideSidebar: function() {
+    this.setState({
+      siderbar: false,
+      activeCluster: null
+    });
   },
 
   getDimensions: function() {
@@ -67,7 +75,7 @@ module.exports = React.createClass({
   },
 
   _fetchData: function() {
-    $.get("http://5.101.96.19:8001")
+    $.get("http://45.55.8.25:8001")
       .success(this._updateClusters)
       .fail(this._updateClusters);
   },

@@ -35,3 +35,32 @@ svg, canvas {
   left:0;
   z-index:-1;
 }
+
+.sidebar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 40%;
+  background: white;
+  box-shadow: 0 0 25px rgba(0,0,0,.5);
+  overflow-y: scroll;
+  padding: 0 1rem;
+}
+
+  .sidebar ul {
+    padding: 0;
+  }
+
+  .sidebar li {
+    list-style: none;
+    border-bottom: 1px solid #eee;
+    padding: .5rem 0;
+  }
+
+  .sidebar .close {
+    font-size: 2rem;
+    float: right;
+    border: none;
+    background: none;
+  }

@@ -31,10 +31,7 @@ module.exports = React.createClass({
         <h2>Loading data...</h2>
       </div>;
     } else {
-      return <div>
-        <p>Total: {this.noOfTweets()} tweets</p>
-        <Redraw redraw={this.renderCentroids} />
-      </div>;
+      return <p>{this.noOfTweets()} tweets</p>;
     }
   },
 
@@ -154,7 +151,7 @@ module.exports = React.createClass({
       if (cluster)
         cluster.forEach(function(point) {
           svgContainer.append("line")
-            .style("stroke", "black")
+            .style("stroke", "rgba(0,0,0,.4)")
             .attr("x1", point.x_axis)
             .attr("y1", point.y_axis)
             .attr("x2", jsonCircles[idx].x_axis)
@@ -169,19 +166,22 @@ module.exports = React.createClass({
 
     circles
     .on("mouseover", function(d) {
-      if (!d.tweet) {
-        this.props.onCentroidHover(d.index);
-      } else {
+      if (d.tweet) {
         tooltip
           .style("left", d.x_axis - 150 + "px")
           .style("top", d.y_axis + 20 + "px")
           .style("display", "block")
           .html(d.tweet[1][1]);
       }
-    }.bind(this))
+    })
     .on("mouseout", function() {
       tooltip.style("display", "none");
-    });
+    })
+    .on("click", function(d) {
+      if (!d.tweet) {
+        this.props.onCentroidClick(d.index); 
+      }
+    }.bind(this));
 
     var circleAttributes = circles
       .attr("cx", function (d) { if (d) return d.x_axis; })
